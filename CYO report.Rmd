@@ -1,0 +1,386 @@
+---
+title: "CYO - Fertility Report"
+author: "Yemi Akinwale"
+date: "11/8/2020"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## I.	INTRODUCTION
+
+Machine learning is building of models or algorithms to make predictions using data. One or more features or predictors are processed from a series of observations to predict an outcome.
+
+The outcome can be divided into categorical and continuous. A categorical outcome is referred to as classification, while a continuous outcome is prediction. 
+
+In this project, the outcome is classification. The data set is semen sample of 100 volunteers, analyzed according to WHO 2010 criteria. Sperm concentrations are related to socio-demographic data, environmental factors, health status, and life habits.  All these factors affect semen and are considered in determining the fertility of the semen to either remain normal or altered.  There are nine (9) of these factors considered in these observations. 
+
+# Executive summary
+
+The goal of this project is to make classification of the semen fertility to either be Normal or Altered. All the predictors will be used in determining the classification. We are to make classification for fertility diagnosis
+Three different algorithms (linear, non-linear and advanced non-linear) are used. The purpose is to study how each algorithm performed in training, predicting and accuracy. 
+
+
+## II. METHODS/ANALYSIS
+
+The following three (3) algorithms were used having considered 1.) The size of the data set 2.) The numbers of predictors (bias) and 3.)The classification outcome.  These algorithms have features to work better with this set of conditions. 
+
+1.	Linear Discriminant Analysis (lda): This is a simple linear algorithm. It has high bias and low variance. 
+
+2.	Kernel Nearest Neighbors (knn): Knn is a non linear algorithm with low bias and high variance. It leverage on average of similar predictors considered as neighbors 
+
+3.	Random Forest (rf): Random forest is complex non linear method. It improve performance and reduces instability by averaging multiple trees (samples) constructed with randomness
+
+Overall accuracy as it is the best metric for classification problems is used to rate the algorithms performance.   
+
+# Process and techniques of the analysis
+
+# 1. Install all necessary packages
+
+Packages are automatically installed with if(!require) code.
+
+```{r packages}
+
+if(!require(tidyverse)) install.packages("tidyverse", repos = "http://cran.us.r-project.org")
+if(!require(caret)) install.packages("caret", repos = "http://cran.us.r-project.org")
+if(!require(data.table)) install.packages("data.table", repos = "http://cran.us.r-project.org")
+
+library(tidyverse)
+library(caret)
+library(data.table)
+library(readr)
+```
+
+# 2. Download and load dataset
+
+The data is obtained from UCI machine learning repository.  The data is clean with complete inputs for all attributes.  
+
+The data is downloaded using the readr package, saved as fertility and the columns renamed appropriately.
+
+# 2.1 The URL to download the data
+
+```{r url}
+url <- "https://archive.ics.uci.edu/ml/machine-learning-databases/00244/fertility_Diagnosis.txt"
+```
+
+# 2.2 Load the data and name as fertility
+
+```{r load data}
+fertility <- read_csv(url, col_names = FALSE)
+```
+
+# 2.3 set the column names
+
+```{r column names}
+colnames(fertility) <- c("Season", "Age", "Diseases", "Accident", "Surgical", "Fevers", "Alcohol", "Smoking", "Sitting", "Diagnosis")
+```
+
+# 3. Attributes Information and names:
+
+The followings are definition of attributes used in the dataset.
+
+1.Season - Season in which the analysis was performed. 1) winter, 2) spring, 3) Summer, 4) fall. (-1, -0.33, 0.33, 1)
+
+2.Age - Age at the time of analysis. 18-36 (0, 1)
+
+3.Diseases - Childish diseases (ie , chicken pox, measles, mumps, polio) 1) yes, 2) no. (0, 1)
+
+4.Accident - Accident or serious trauma 1) yes, 2) no. (0, 1)
+
+5.Surgical - Surgical intervention 1) yes, 2) no. (0, 1)
+
+6.Fevers - High fevers in the last year 1) less than three months ago, 2) more than three months ago, 3) no. (-1, 0, 1)
+
+7.Alcohol - Frequency of alcohol consumption 1) several times a day, 2) every day, 3) several times a week, 4) once a week, 5) hardly ever or never (0, 1)
+
+8.Smoking - Smoking habit 1) never, 2) occasional 3) daily. (-1, 0, 1)
+
+9.Sitting - Number of hours spent sitting per day - 16 (0, 1)
+
+10.Diagnosis - This is the Output. The Diagnosis can either be normal (N) or altered (O)
+
+Each attributes has different classes which are represented numerically. For example, Age, is the age of the volunteer as at the time of the analysis. The age bracket used is 18 to 36. This was further represented as 0 to 1 with age 18 as 0.5 and 36 as 1. Similarly, winter as season is represented as -1.
+
+The regression for this categorical outcome can be presented thus:
+
+Diagnosis(y) = Season + Age + Diseases + Accident + Surgical + Fevers + Alcohol + Smoking + Sitting
+
+# 4. Summarize data set
+
+# 4.1 Dimensions of data set
+
+The dimension of the data is 100 rows by 10 columns.
+
+```{r dimension}
+dim(fertility)
+```
+
+# 4.2 Types of attributes
+
+This shows the class of each attribute in the data set.
+
+```{r class}
+sapply(fertility, class)
+```
+
+# 4.3 Glimpse at the data
+
+A glimpse of the data set shows first few rows and columns.
+
+```{r glimpse}
+glimpse(fertility)
+```
+
+# 4.4 Number of instances in each attribute
+
+This shows the distinctive number of each variable involved in the data set e.g Season has 4 – winter, spring, summer and fall.
+
+```{r n_distinct}
+sapply(fertility, n_distinct)
+```
+
+# 4.5 Statistical summary of the attributes
+
+The summary shows the statistical details like the mean, median of all the variables.
+
+```{r summary}
+summary(fertility)
+```
+
+# 5. Visualization and graphic explanation of data set
+
+# 5.1 split predictors and output
+
+The data set – fertility is separated into predictors – x and the outcome – y
+
+```{r }
+x <- fertility[,1:9]
+y <- fertility[,10]
+```
+
+# 5.2 barplot to show the distribution of the class
+
+The barchart visualizes the two outcomes – Normal (N) and Altered (O). There are far more Normal cases than Altered.
+
+```{r barchat}
+barchart(y)
+```
+
+# 5.3 boxplot for each attribute on one image
+
+Given that the inputs – predictors are numeric, a box plot of each predictor shows a clearer idea of the distribution of the predictors. The plot is separated into two because of space.
+
+```{r}
+par(mfrow=c(1,5))
+   for(i in 1:5) {
+     boxplot(x[,i], main = names(fertility)[i])
+   }
+
+    for(i in 6:9) {
+      boxplot(x[,i], main = names(fertility)[i])
+   }
+```
+
+
+# 6. Creation of Validation and Train sets from fertility
+
+Using the createDataPartition function of caret package, the validation and train sets were created from the fertility data in ratio 2:8 respectively. The ratio is to enable the algorithms enough data to train and proportionate representation of the two outcomes in validation set.
+
+```{r create data partition}
+set.seed(1, sample.kind="Rounding") # set the seed
+test_index <- createDataPartition(y = fertility$Diagnosis, times = 1, p = 0.2, list = FALSE)
+train <- fertility[-test_index,]
+validation <- fertility[test_index,]
+```
+
+# 7. Evaluate algorithms 
+
+# An insight
+
+This is a simple sampling of the outcome – classification. The accuracy which changes at every other rerun is just a guide to how better the algorithms could do.
+
+```{r sampling}
+y_hat <- sample(c("N", "O"), length(test_index), replace = TRUE)
+mean(y_hat == validation$Diagnosis)
+```
+
+# The following 3 Algorithms will be used and overall accuracy will be used as metric.
+
+# 7.1 Linear Discriminant Analysis (LDA) - Linear
+fit the predictors in the train set
+```{r }
+set.seed(1)
+train.lda <- train(Diagnosis ~ ., data = train, method = "lda") 
+```
+Predict from validation set
+```{r}
+predict.lda <- predict(train.lda, validation)
+```
+Accuracy of classification from the validation set
+```{r}
+Accuracy.lda <- mean(predict.lda == validation$Diagnosis)
+Accuracy.lda
+```
+
+# 7.2 Kernel Nearest Neighbors (kNN) - Non Linear
+
+The fit, predict and accuracy of the knn
+
+```{r Kernel Nearest Neighbors (kNN) - Non Linear}
+set.seed(1)
+train.knn <- train(Diagnosis ~ ., data = train, method = "knn")
+predict.knn <- predict(train.knn, validation) 
+Accuracy.knn <- mean(predict.knn == validation$Diagnosis)
+Accuracy.knn
+```
+
+# 7.3 Random Forest (rf) - Advanced
+
+The fit, predict and accuracy of the rf
+
+```{r random forest}
+set.seed(1)
+train.rf <- train(Diagnosis ~ ., data = train, method = "rf") 
+predict.rf <- predict(train.rf, validation) 
+Accuracy.rf <- mean(predict.rf == validation$Diagnosis) 
+Accuracy.rf
+```
+
+## III. RESULTS
+
+# 8. Analysis of the Algorithms results
+# 8.1 Analysis of each Algorithm
+# 8.1.1 Linear Discriminant Analysis (LDA) - Linear
+
+The train summary shows that the train set resamples the 79 data 25 repetitions. It has accuracy of 0.810277
+
+```{r lda}
+print(train.lda)
+```
+
+The Variable importance in the lda algorithm can be obtained as the coefficients of the predictors. For the analysis, Age is the most important variable.
+
+```{r final model}
+train.lda$finalModel
+```
+
+# 8.1.2 Kernel Nearest Neighbors (kNN) - Non Linear
+
+The train summary of the knn algorithms shows that the algorithm used 3 tuning parameters (k) to train and resample 25 times. The tuning parameter with the highest accuracy was selected to predict. k at 9 has the accuracy of 0.8508
+
+```{r knn}
+print(train.knn)
+```
+
+Graphical presentation of the tuning parameters and the accuracy.
+
+```{r}
+ggplot(train.knn)
+```
+                         
+# 8.1.3 Random Forest (rf) - Advanced
+
+Similar to how knn use tuning parameters. Random forest tuning parameter called mtry, use the mtry 2 with the highest accuracy of 0.8752 to predict
+
+```{r}
+print(train.rf)
+```
+
+This shows the graphical representation of the accuracy and mtry.
+
+```{r}
+ggplot(train.rf)
+```
+
+The variable importance function of caret package can be used for random forest to get the importance of variables. Age is the most important predictor just as seen in lda analysis.
+
+```{r}
+varImp(train.rf)
+```
+
+
+# 8.2 Comparison of Algorithms
+
+# 8.2.1 Comparison of the training within the Algorithms
+
+The random forest has the highest accuracy from the train summary (mean column). The plot below shows the spread and accuracy mean of the algorithms.
+
+```{r train of algorithms}
+results_train <- resamples(list(lda = train.lda, knn = train.knn, rf = train.rf))
+```
+```{r }
+summary(results_train)
+```
+```{r }
+dotplot(results_train)
+```
+```{r plot of results}
+ggplot(results_train)
+```
+
+# 8.2.2 Comparison of Algorithms Accuracy
+
+All the algorithms have same overall accuracy. This is because of the small validation set.No cross validation was used because all the predictors have equal and complete inputs - no missing values.
+
+```{r list of algorithms}
+model <- c("lda", "knn", "rf")
+```
+```{r accuracy of algorithms}
+Accuracy <- c(Accuracy.lda, Accuracy.knn, Accuracy.rf)
+```
+```{r table of model}
+data.frame(model, Accuracy)
+```
+```{r plot of accuracy}
+qplot(model, Accuracy)
+```
+
+# 8.2.3 Confusion Matrix analysis
+
+Sometimes, overall accuracy can be a deceptive measure due to unbalanced classes. A look at other metrics could help to determine how well an algorithm performed.
+
+Like in this case, the classes are not balanced. Other metrics are analyzed below:
+
+1.	Specificity – is the proportion of actual negative outcomes that are correctly identified as such. The value is 0, which means there was no negative outcome identified as positive.
+
+2.	Sensitivity – also known as recall is the proportion of actual positive outcomes correctly identified as such. The recall value in this case is 1. This shows that all positive class “N” is correctly identified.
+
+3.	Prevalence – is the proportion the positive class in the outcome. It’s like a check of the specificity accuracy. The prevalence is 0.8571 which is correct as the mean of positive outcome "N" in the validation set. Prevalence matters more in practice. 
+
+4.	Balanced accuracy – is the harmonic average of specificity and sensitivity. The value is 0.5.
+
+5. 95% CI - The confidence Interval (CI) is 64% lower and 97% upper. This is good as the 95% is within the confidence interval.
+
+However, all the algorithms have the same values in the confusion matrix. The above analysis suffice for all the algorithms.
+
+```{r lda confusion matrix}
+confusionMatrix(predict.lda, factor(validation$Diagnosis))
+```
+```{r knn confusion matrix}
+confusionMatrix(predict.knn, factor(validation$Diagnosis))
+```
+```{r rf confusion matrix}
+confusionMatrix(predict.rf, factor(validation$Diagnosis))
+```
+
+## IV.	CONCLUSION
+
+All the algorithms used in this project performed same. They all have same overall accuracy and same as for other metrics. Although the accuracy is not that high. The algorithms performances on other metrics show that they predicted good.
+
+The data set is small and all predictors are numeric. There is no much variation in the values of the predictors which ranges mostly between 0 and 1. The size of the validation set greatly determine the algorithms overall accuracy. 
+
+
+
+# Citation
+
+The data set was obtained from UCI machine learning site and was donated by the following:
+David Gil, Jose Luis Girela, Joaquin De Juan, M. Jose Gomez-Torres, and
+Magnus Johnsson. Predicting seminal quality with artificial intelligence
+methods. Expert Systems with Applications, 39(16):12564 12573, 2012
+
+
+      
